@@ -115,4 +115,15 @@
                                slots))
                (remove-if-not (lambda (elm) (third elm)) $)))))))
 
-
+(defun grep-apropos (apropos-arg &rest grep-args)
+  (let* ((apropos-result (with-output-to-string (str)
+                           (let ((*standard-output* str))
+                             (apropos apropos-arg))))
+         (result-lines (split-sequence:split-sequence #\Newline apropos-result
+                                                      :remove-empty-subseqs t)))
+    (dolist (arg grep-args)
+      (setf result-lines (remove-if-not (lambda (line) (search (string-upcase arg)
+                                                               (string-upcase line)))
+                                        result-lines)))
+    (dolist (line result-lines)
+      (print line))))
