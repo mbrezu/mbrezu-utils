@@ -26,12 +26,11 @@
 (test basic-from-list
   "Test that converting a class into a list and back into a class
 works."
-  (let ((t1 (mk-point 1 2)))
-    (is (deep-equal t1 (-> t1 to-list from-list))))
-  (let ((t2 (list (mk-point 1 2) (mk-point 1 3))))
-    (is (deep-equal t2 (-> t2 to-list from-list))))
-  (let ((t3 (mk-rectangle (mk-point 1 2) (mk-point 1 3))))
-    (is (deep-equal t3 (-> t3 to-list from-list)))))
+  (let ((tests (list (mk-point 1 2)
+                     (list (mk-point 1 2) (mk-point 1 3))
+                     (mk-rectangle (mk-point 1 2) (mk-point 1 3)))))
+    (dolist (test tests)
+      (is (deep-equal test (-> test to-list from-list))))))
 
 (mabu:defclassf person () (name age gender))
 
@@ -59,8 +58,12 @@ works."
 
 (test corner-cases
   "Test that escaping for :class works."
-  (let ((t1 '(:class 1)))
-    (is (deep-equal t1 (from-list (to-list t1))))))
+  (let ((tests (list '(:class 1)
+                     '(:class)
+                     '((:atom :class))
+                     '((:atom . :class)))))
+    (dolist (test tests)
+      (is (deep-equal test (-> test to-list from-list))))))
 
 (test diff
   "Test that diffing fields works."

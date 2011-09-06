@@ -2,6 +2,8 @@
 
 (in-package #:mbrezu-utils)
 
+(declaim (optimize debug))
+
 (defmacro -> (obj &rest forms)
   "Similar to the -> macro from clojure, but with a tweak: if there is
   a $ symbol somewhere in the form, the object is not added as the
@@ -33,10 +35,12 @@
 
 (defgeneric deep-equal (instance1 instance2))
 
-(defun from-list (list)
+(defun from-list (list &optional (is-first t))
   (cond ((atom list) list)
         ((consp list)
-         (cond ((eq :atom (car list)) (cdr list))
+         (cond ((and is-first (-> list first to-unescape))
+                (cons (-> list first unescape)
+                      (-> list rest (from-list $ nil))))
                ((eq :class (car list))
                 (apply #'make-instance
                        (second list)
@@ -44,20 +48,46 @@
                                  (cond ((keywordp elm) elm)
                                        (t (from-list elm))))
                                (nthcdr 2 list))))
-               (t (mapcar #'from-list list))))))
+               (t (cons (-> list first from-list)
+                        (-> list rest (from-list $ nil))))))))
+
+(defun to-unescape (data)
+  (and (consp data) (-> data first (eq :atom)) (to-escape data)))
+
+(defun unescape (data)
+  (-> data rest first))
+
+(defun to-escape (data)
+  (cond ((eq :class data) t)
+        ((and (consp data) (eq :atom (car data)) (consp (cdr data)))
+         (-> data second to-escape))
+        (t nil)))
+
+(defun escape (data)
+  (list :atom data))
 
 (defmethod to-list ((instance t))
-  (cond ((eq :class instance)
-         (cons :atom :class))
-        ((atom instance)
+  (cond ((atom instance)
          instance)
         (t (error "Not an atom."))))
 
+(defun to-list-list (list &optional (is-first t))
+  (if (atom list)
+      list
+      (cons (if (and is-first (-> list first to-escape))
+                (-> list first escape)
+                (-> list first to-list))
+            (to-list-list (rest list) nil))))
+
 (defmethod to-list ((instance cons))
-  (mapcar #'to-list instance))
+  (to-list-list instance))
 
 (defmethod deep-equal ((instance1 t) (instance2 t))
   (equalp instance1 instance2))
+
+(defmethod deep-equal ((instance1 cons) (instance2 cons))
+  (and (deep-equal (car instance1) (car instance2))
+       (deep-equal (cdr instance1) (cdr instance2))))
 
 (defmethod deep-equal ((instance1 sequence) (instance2 sequence))
   (every #'deep-equal instance1 instance2))
@@ -65,8 +95,7 @@
 (defgeneric diff (instance1 instance2))
 
 ;; TBD -- longest matching subsequence etc.
-(defmethod diff ((instance1 sequence) (instance2 sequence))
-  )
+(defmethod diff ((instance1 sequence) (instance2 sequence)))
 
 (defmethod diff ((instance1 t) (instance2 t))
   (unless (deep-equal instance1 instance2)
