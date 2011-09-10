@@ -76,4 +76,9 @@ works."
   (is (equalp "Ana are paere."
               (-> (list-diff (coerce "Ana are mere." 'list) (coerce "Ana are paere." 'list))
                   (list-patch (coerce "Ana are mere." 'list) $)
-                  (coerce $ 'string)))))
+                  (coerce $ 'string))))
+  (let ((list1 '((a c d e) 2 3 4 5 6))
+        (list2 '((a b c d e) 2 3 7 8)))
+    (is (equalp list2
+                (list-patch list1
+                            (list-diff list1 list2))))))
