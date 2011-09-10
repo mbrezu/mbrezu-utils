@@ -8,12 +8,8 @@
            defclassf
            ->
            deep-equal diff grep-apropos
-           print-all))
-
-(defpackage #:mbrezu-utils-tests
-  (:use #:cl)
-  (:use #:mabu)
-  (:use #:fiveam))
+           print-all
+           list-diff list-patch))
 
 (defpackage #:mbrezu-utils-postgres
   (:use #:cl)
@@ -28,4 +24,11 @@
   (:use #:bordeaux-threads)
   (:nicknames #:mut)
   (:export *log* clear-log log-message get-log log-sleep))
+
+(defpackage #:mbrezu-utils-tests
+  (:use #:cl)
+  (:use #:mabu)
+  (:use #:fiveam))
+
+
 

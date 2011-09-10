@@ -55,6 +55,30 @@
               (eq (caar seq) 'drop))
          (list 'drop (reduce #'+ (mapcar #'second seq))))))
 
+(defun list-diff (list1 list2)
+  (-> (longest-subseq list1
+                      list2)
+      (group-by $ :predicate (lambda (e1 e2)
+                               (cond ((and (consp e1) (consp e2))
+                                      (eq (car e1) (car e2)))
+                                     (t (equal e1 e2)))))
+      (mapcar #'combine $)))
+
+(defun list-patch (list diff &optional acc)
+  (cond ((null diff) (apply #'append (reverse acc)))
+        (t (destructuring-bind (op arg) (car diff)
+             (case op
+               ((keep) (list-patch (nthcdr arg list)
+                                   (cdr diff)
+                                   (cons (subseq list 0 arg)
+                                         acc)))
+               ((add) (list-patch list
+                                  (cdr diff)
+                                  (cons arg acc)))
+               ((drop) (list-patch (nthcdr arg list)
+                                   (cdr diff)
+                                   acc)))))))
+
 ;; (group-by (longest-subseq (coerce "Ana are mere." 'list) (coerce "Ana are paere." 'list)))
 
 ;; (group-by (longest-subseq (coerce "Ana are mere." 'list) (coerce "Ana are paere." 'list))

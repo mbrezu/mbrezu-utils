@@ -70,3 +70,10 @@ works."
   (is (equalp '((:CHANGE DR-CORNER ((:CHANGE Y (:OLD 3 :NEW 4)))))
               (diff (mk-rectangle (mk-point 1 2) (mk-point 2 3))
                     (mk-rectangle (mk-point 1 2) (mk-point 2 4))))))
+
+(test list-diff
+  "Test that list diffing and patching works."
+  (is (equalp "Ana are paere."
+              (-> (list-diff (coerce "Ana are mere." 'list) (coerce "Ana are paere." 'list))
+                  (list-patch (coerce "Ana are mere." 'list) $)
+                  (coerce $ 'string)))))
