@@ -2,6 +2,7 @@
 
 (defpackage #:mbrezu-utils
   (:use #:cl)
+  (:use #:cl-match)
   (:nicknames #:mabu)
   (:export mkstr mksymb
            to-list from-list

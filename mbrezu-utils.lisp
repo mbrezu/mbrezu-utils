@@ -165,3 +165,8 @@
                                   (format str "~%")))))))
     `(format ,stream ,format-string ,@exprs)))
 
+(defmacro ematch (expr &body clauses)
+  `(match ,expr
+     ,@(append clauses
+               '((_ (error "EMATCH: no clause matched."))))))
+
