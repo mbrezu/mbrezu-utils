@@ -33,82 +33,90 @@
              ((list :add-tail arg) (diff-score (cdr instructions)
                                                (+ acc (tree-length arg))))))))
 
-(defun mk-index (&optional parent)
-  (cons 0 parent))
-
-(defun inc-index (index &optional (delta 1))
-  (cons (+ delta (car index))
-        (cdr index)))
-
-(defun longest-subseq-impl (seq-1 seq-2 index-1 index-2 hash)
+(defun longest-subseq-impl (seq-1 seq-2 index-1 index-2 storage)
   (cond ((and (null seq-1) (null seq-2))
          nil)
         ((not (listp seq-1))
          (cond ((or (null seq-2) (consp seq-2))
                 (cons :drop-tail (longest-subseq nil seq-2
-                                                 (inc-index index-1) index-2
-                                                 hash)))
+                                                 (1+ index-1) index-2
+                                                 storage)))
                ((equalp seq-1 seq-2)
                 (cons :keep-tail (longest-subseq nil nil
-                                                 (inc-index index-1) (inc-index index-2)
-                                                 hash)))
+                                                 (1+ index-1) (1+ index-2)
+                                                 storage)))
                (t (cons (list :replace-tail seq-2)
                         (longest-subseq nil nil
-                                        (inc-index index-1) (inc-index index-2)
-                                        hash)))))
+                                        (1+ index-1) (1+ index-2)
+                                        storage)))))
         ((not (listp seq-2))
          (cond ((null seq-1)
                 (cons (list :add-tail seq-2) (longest-subseq nil nil
-                                                             index-1 (inc-index index-2)
-                                                             hash)))
+                                                             index-1 (1+ index-2)
+                                                             storage)))
                (t (cons (list :drop 1) (longest-subseq (rest seq-1) seq-2
-                                                       (inc-index index-1) index-2
-                                                       hash)))))
+                                                       (1+ index-1) index-2
+                                                       storage)))))
         ((null seq-1)
          (cons (list :add (list (car seq-2)))
                (longest-subseq nil (rest seq-2)
-                               index-1 (inc-index index-2)
-                               hash)))
+                               index-1 (1+ index-2)
+                               storage)))
         ((null seq-2)
          (cons (list :drop 1)
                (longest-subseq (rest seq-1) nil
-                               (inc-index index-1) index-2
-                               hash)))
+                               (1+ index-1) index-2
+                               storage)))
         ((equalp (first seq-1) (first seq-2))
          (cons (list :keep 1) (longest-subseq (rest seq-1) (rest seq-2)
-                                              (inc-index index-1) (inc-index index-2)
-                                              hash)))
+                                              (1+ index-1) (1+ index-2)
+                                              storage)))
         (t
          (let ((candidates (list (cons (list :add (list (first seq-2)))
                                        (longest-subseq seq-1 (rest seq-2)
-                                                       index-1 (inc-index index-2)
-                                                       hash))
+                                                       index-1 (1+ index-2)
+                                                       storage))
                                  (cons (list :drop 1)
                                        (longest-subseq (rest seq-1) seq-2
-                                                       (inc-index index-1) index-2
-                                                       hash)))))
+                                                       (1+ index-1) index-2
+                                                       storage)))))
            (if (and (consp (car seq-1))
                     (consp (car seq-2)))
                (push (cons (list :into (longest-subseq (car seq-1) (car seq-2)
-                                                       (mk-index index-1) (mk-index index-2)
-                                                       hash))
+                                                       0 0))
                            (longest-subseq (rest seq-1) (rest seq-2)
-                                           (inc-index index-1) (inc-index index-2)
-                                           hash))
+                                           (1+ index-1) (1+ index-2)
+                                           storage))
                      candidates))
            (setf candidates (mapcar #'(lambda (diff) (cons (diff-score diff) diff))
                                     candidates))
            (setf candidates (sort candidates #'< :key #'car))
            (-> candidates first cdr)))))
 
-(defun longest-subseq (seq-1 seq-2 index-1 index-2 hash)
-  (let ((key (cons index-1 index-2)))
-    (aif (gethash key hash)
-         it
-         (setf (gethash key hash)
-               (longest-subseq-impl seq-1 seq-2
-                                    index-1 index-2
-                                    hash)))))
+(defun make-storage (size1 size2)
+  (make-array (list size1 size2) :initial-element '(nil nil)))
+
+(defun get-element (storage idx1 idx2)
+  (values-list (aref storage idx1 idx2)))
+
+(defun set-element (storage idx1 idx2 value)
+  (setf (aref storage idx1 idx2) (list value t)))
+
+(defun length2 (list)
+  (cond ((null list) 0)
+        ((atom list) 1)
+        (t (1+ (length2 (cdr list))))))
+
+(defun longest-subseq (seq-1 seq-2 index-1 index-2
+                       &optional (storage (make-storage (1+ (length2 seq-1))
+                                                        (1+ (length2 seq-2)))))
+  (multiple-value-bind (value found) (get-element storage index-1 index-2)
+    (unless found
+      (setf value (longest-subseq-impl seq-1 seq-2
+                                       index-1 index-2
+                                       storage))
+      (set-element storage index-1 index-2 value))
+    value))
 
 (defun group-by-impl (seq pred acc current-group)
   (cond ((null seq) (if current-group
@@ -146,9 +154,7 @@
                              ((list :into arg) (list :into (rle-compress (second elem))))
                              (_ elem)))
                          $))))
-    (rle-compress (longest-subseq list1 list2
-                                  (mk-index) (mk-index)
-                                  (make-hash-table :test #'equalp)))))
+    (rle-compress (longest-subseq list1 list2 0 0))))
 
 (defun list-patch (list diff)
   (cond ((null diff) nil)
