@@ -170,3 +170,18 @@
      ,@(append clauses
                '((_ (error "EMATCH: no clause matched."))))))
 
+(defmacro aif (test then &optional (else nil))
+  `(let ((it ,test))
+     (if it ,then ,else)))
+
+(defmacro awhen (test &body body)
+  `(let ((it ,test))
+     (when it ,@body)))
+
+(defmacro bif ((var test) then &optional (else nil))
+  `(let ((,var ,test))
+     (if ,var ,then ,else)))
+
+(defmacro bwhen ((var test) &body body)
+  `(let ((,var ,test))
+     (when ,var ,@body)))

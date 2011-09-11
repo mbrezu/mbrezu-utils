@@ -10,7 +10,8 @@
            ->
            deep-equal diff grep-apropos
            print-all
-           list-diff list-patch))
+           list-diff list-patch
+           aif awhen bif bwhen))
 
 (defpackage #:mbrezu-utils-postgres
   (:use #:cl)
