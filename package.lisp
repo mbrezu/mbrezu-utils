@@ -30,7 +30,8 @@
 (defpackage #:mbrezu-utils-tests
   (:use #:cl)
   (:use #:mabu)
-  (:use #:fiveam))
+  (:use #:fiveam)
+  (:export :mbrezu-utils-tests))
 
 
 
