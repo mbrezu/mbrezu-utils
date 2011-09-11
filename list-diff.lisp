@@ -9,29 +9,35 @@
         ((consp (car list)) (tree-length (cdr list) (+ acc (tree-length (car list)))))
         (t (tree-length (cdr list) (1+ acc)))))
 
-(defun diff-score (instructions &optional (acc 0) (last nil))
-  (cond ((null instructions) acc)
-        (t (ematch (car instructions)
-             ((list :keep arg) (diff-score (cdr instructions)
-                                           (+ acc (if (eq last :keep) 0 1))
-                                           :keep))
-             ((list :drop arg) (diff-score (cdr instructions)
-                                           (+ acc (if (eq last :drop) 0 1))
-                                           :drop))
-             ((list :add arg) (diff-score (cdr instructions)
-                                          (+ acc (tree-length arg))
-                                          :add))
-             ((list :into arg) (diff-score (cdr instructions)
-                                           (+ acc (diff-score arg))
-                                           :into))
-             (:drop-tail (diff-score (cdr instructions)
-                                     (1+ acc)))
-             (:keep-tail (diff-score (cdr instructions)
-                                     (1+ acc)))
-             ((list :replace-tail arg) (diff-score (cdr instructions)
-                                                   (+ acc 1 (tree-length arg))))
-             ((list :add-tail arg) (diff-score (cdr instructions)
-                                               (+ acc (tree-length arg))))))))
+(defun diff-score-impl (instructions)
+  (cond ((null instructions) 0)
+        (t (+ (diff-score-step-impl (car instructions))
+              (diff-score-impl (cdr instructions))))))
+
+(defun diff-score-step-impl (instruction)
+  (ematch instruction
+    ((list :keep arg) 0)
+    ((list :drop arg) 1)
+    ((list :add arg) (* 2 (tree-length arg)))
+    ((list :into arg) (diff-score-impl arg))
+    (:drop-tail 1)
+    (:keep-tail 1)
+    ((list :replace-tail arg) (+ 1 (tree-length arg)))
+    ((list :add-tail arg) (+ (tree-length arg)))))
+
+(defun diff-score-step (instruction instructions idx1 idx2 &optional storage)
+  (+ (diff-score-step-impl instruction)
+     (diff-score instructions idx1 idx2 storage)))
+
+(defun diff-score (instructions idx1 idx2 &optional storage)
+  (if storage
+      (multiple-value-bind (value found)
+          (get-element-diff-score storage idx1 idx2)
+        (unless found
+          (setf value (diff-score-impl instructions))
+          (set-element-diff-score storage idx1 idx2 value))
+        value)
+      (diff-score-impl instructions)))
 
 (defun longest-subseq-impl (seq-1 seq-2 index-1 index-2 storage)
   (cond ((and (null seq-1) (null seq-2))
@@ -72,35 +78,57 @@
                                               (1+ index-1) (1+ index-2)
                                               storage)))
         (t
-         (let ((candidates (list (cons (list :add (list (first seq-2)))
-                                       (longest-subseq seq-1 (rest seq-2)
-                                                       index-1 (1+ index-2)
-                                                       storage))
-                                 (cons (list :drop 1)
-                                       (longest-subseq (rest seq-1) seq-2
-                                                       (1+ index-1) index-2
-                                                       storage)))))
+         (let* (last-step
+                last-diff
+                (candidates (list (list (cons (setf last-step (list :add (list (first seq-2))))
+                                              (setf last-diff (longest-subseq seq-1 (rest seq-2)
+                                                                              index-1 (1+ index-2)
+                                                                              storage)))
+                                        (diff-score-step last-step
+                                                         last-diff
+                                                         index-1 (1+ index-2)
+                                                         storage))
+                                  (list (cons (setf last-step (list :drop 1))
+                                              (setf last-diff (longest-subseq (rest seq-1) seq-2
+                                                                              (1+ index-1) index-2
+                                                                              storage)))
+                                        (diff-score-step last-step
+                                                         last-diff
+                                                         (1+ index-1) index-2
+                                                         storage)))))
            (if (and (consp (car seq-1))
                     (consp (car seq-2)))
-               (push (cons (list :into (longest-subseq (car seq-1) (car seq-2)
-                                                       0 0))
-                           (longest-subseq (rest seq-1) (rest seq-2)
-                                           (1+ index-1) (1+ index-2)
-                                           storage))
+               (push (list (cons (setf last-step (list :into (longest-subseq (car seq-1) (car seq-2)
+                                                                             0 0)))
+                                 (setf last-diff (longest-subseq (rest seq-1) (rest seq-2)
+                                                                 (1+ index-1) (1+ index-2)
+                                                                 storage)))
+                           (diff-score-step last-step
+                                            last-diff
+                                            (1+ index-1) (1+ index-2)
+                                            storage))
                      candidates))
-           (setf candidates (mapcar #'(lambda (diff) (cons (diff-score diff) diff))
-                                    candidates))
-           (setf candidates (sort candidates #'< :key #'car))
-           (-> candidates first cdr)))))
+           (setf candidates (sort candidates #'< :key #'second))
+           (set-element-diff-score storage index-1 index-2 (-> candidates first second))
+           (-> candidates first first)))))
 
-(defun make-storage (size1 size2)
-  (make-array (list size1 size2) :initial-element '(nil nil)))
+(defstruct storage diff-score diff)
 
-(defun get-element (storage idx1 idx2)
-  (values-list (aref storage idx1 idx2)))
+(defun mk-storage (size1 size2)
+  (make-storage :diff-score (make-array (list size1 size2) :initial-element '(nil nil))
+                :diff (make-array (list size1 size2) :initial-element '(nil nil))))
 
-(defun set-element (storage idx1 idx2 value)
-  (setf (aref storage idx1 idx2) (list value t)))
+(defun get-element-diff (storage idx1 idx2)
+  (values-list (aref (storage-diff storage) idx1 idx2)))
+
+(defun set-element-diff (storage idx1 idx2 value)
+  (setf (aref (storage-diff storage) idx1 idx2) (list value t)))
+
+(defun get-element-diff-score (storage idx1 idx2)
+  (values-list (aref (storage-diff-score storage) idx1 idx2)))
+
+(defun set-element-diff-score (storage idx1 idx2 value)
+  (setf (aref (storage-diff-score storage) idx1 idx2) (list value t)))
 
 (defun length2 (list)
   (cond ((null list) 0)
@@ -108,14 +136,14 @@
         (t (1+ (length2 (cdr list))))))
 
 (defun longest-subseq (seq-1 seq-2 index-1 index-2
-                       &optional (storage (make-storage (1+ (length2 seq-1))
-                                                        (1+ (length2 seq-2)))))
-  (multiple-value-bind (value found) (get-element storage index-1 index-2)
+                       &optional (storage (mk-storage (1+ (length2 seq-1))
+                                                      (1+ (length2 seq-2)))))
+  (multiple-value-bind (value found) (get-element-diff storage index-1 index-2)
     (unless found
       (setf value (longest-subseq-impl seq-1 seq-2
                                        index-1 index-2
                                        storage))
-      (set-element storage index-1 index-2 value))
+      (set-element-diff storage index-1 index-2 value))
     value))
 
 (defun group-by-impl (seq pred acc current-group)
@@ -160,7 +188,7 @@
   (cond ((null diff) nil)
         (t (ematch (car diff)
              ((list :keep arg) (append (subseq list 0 arg)
-                                       (list-patch (subseq list arg)
+                                       (list-patch (nthcdr arg list)
                                                    (cdr diff))))
              ((list :add arg) (append arg (list-patch list
                                                       (cdr diff))))
