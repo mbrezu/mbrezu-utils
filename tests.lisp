@@ -71,14 +71,25 @@ works."
               (diff (mk-rectangle (mk-point 1 2) (mk-point 2 3))
                     (mk-rectangle (mk-point 1 2) (mk-point 2 4))))))
 
+(defmacro diff-patch-compare (list1 list2)
+  (let ((g1 (gensym "list1"))
+        (g2 (gensym "list2")))
+    `(let ((,g1 ,list1)
+           (,g2 ,list2))
+       (is (equalp ,g2
+                   (-> ,g1
+                       (list-diff $ ,g2)
+                       (list-patch ,g1 $)))))))
+
 (test list-diff
   "Test that list diffing and patching works."
   (is (equalp "Ana are paere."
               (-> (list-diff (coerce "Ana are mere." 'list) (coerce "Ana are paere." 'list))
                   (list-patch (coerce "Ana are mere." 'list) $)
                   (coerce $ 'string))))
-  (let ((list1 '((a c d e) 2 3 4 5 6))
-        (list2 '((a b c d e) 2 3 7 8)))
-    (is (equalp list2
-                (list-patch list1
-                            (list-diff list1 list2))))))
+  (diff-patch-compare '((a c d e) 2 3 4 5 6)
+                      '((a b c d e) 2 3 7 8))
+  (diff-patch-compare '(1 . 2)
+                      '(3 . 1))
+  (diff-patch-compare '(1 2 3 . 2)
+                      '(3 . 2)))
