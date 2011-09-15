@@ -166,6 +166,11 @@ works."
         (modified #(10 20 30 40 50 60 70 80 90 100)))
     (is (equalp modified
                 (binary-patch original (binary-diff original modified)))))
+  (let ((original #(10 20 30 40 50 60 70 80 90 100 110))
+        (modified #(10 20 30 40 50 60 70 80 90 100 110)))
+    (is (null (binary-diff original modified)))
+    (is (equalp modified
+                (binary-patch original (binary-diff original modified)))))
   (dotimes (i 500)
     (is (identity (test-binary-diff-patch 101 5))))
   (dotimes (i 200)
