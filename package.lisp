@@ -11,7 +11,8 @@
            deep-equal diff grep-apropos
            print-all
            list-diff list-patch
-           aif awhen bif bwhen))
+           aif awhen bif bwhen
+           binary-diff binary-patch))
 
 (defpackage #:mbrezu-utils-postgres
   (:use #:cl)
@@ -32,6 +33,7 @@
   (:use #:mabu)
   (:use #:fiveam)
   (:export :mbrezu-utils-tests))
+
 
 
 

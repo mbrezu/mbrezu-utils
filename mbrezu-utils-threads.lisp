@@ -1,7 +1,7 @@
 
 (in-package :mut)
 
-(defvar *log*)
+(defvar *log* nil)
 
 (defvar *lock* (make-lock))
 
