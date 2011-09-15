@@ -102,11 +102,6 @@ works."
                                (make-test-tree size (1- depth))))))
       (alter-test-tree tree))))
 
-;; (defun test (size depth)
-;;   (let ((list1 (make-test-tree size depth))
-;;         (list2 (make-test-tree size depth)))
-;;     (list-diff list1 list2)))
-
 (test list-diff
   "Test that list diffing and patching works."
   (is (equalp "Ana are paere."
@@ -128,3 +123,52 @@ works."
   (dotimes (i 4)
     (diff-patch-compare (make-test-tree 4 3)
                         (make-test-tree 4 3))))
+
+(defun mk-random-bytes (size)
+  (let ((result (make-array size :element-type '(mod 256))))
+    (dotimes (i size)
+      (setf (aref result i) (random 256)))
+    result))
+
+(defun mutate-bytes (bytes times)
+  (dotimes (i times)
+    (ecase (random 3)
+      ((0) (setf (aref bytes (random (length bytes))) (random 256)))
+      ((1) (when (> (length bytes) 0)
+             (let ((point (random (length bytes))))
+               (setf bytes (concatenate 'simple-vector
+                                        (subseq bytes 0 point)
+                                        (subseq bytes (1+ point)))))))
+      ((2) (let ((point (random (length bytes))))
+             (setf bytes (concatenate 'simple-vector
+                                      (subseq bytes 0 point)
+                                      (make-array 1 :initial-element (random 256))
+                                      (subseq bytes point)))))))
+  bytes)
+
+(defvar *last-bd-original*)
+(defvar *last-bd-modified*)
+
+(defun test-binary-diff-patch (size mutations)
+  (let (original-array modified-array)
+    (setf original-array (mk-random-bytes size))
+    (setf modified-array (mutate-bytes (copy-seq original-array) mutations))
+    (let ((must-hold (equalp modified-array
+                             (binary-patch original-array (binary-diff original-array
+                                                                       modified-array)))))
+      (unless must-hold
+        (setf *last-bd-original* original-array)
+        (setf *last-bd-modified* modified-array))
+      must-hold)))
+
+(test binary-diff
+  (let ((original #(10 20 30 40 50 50 60 70 80 90 100))
+        (modified #(10 20 30 40 50 60 70 80 90 100)))
+    (is (equalp modified
+                (binary-patch original (binary-diff original modified)))))
+  (dotimes (i 500)
+    (is (identity (test-binary-diff-patch 101 5))))
+  (dotimes (i 200)
+    (is (identity (test-binary-diff-patch 1001 20))))
+  (dotimes (i 100)
+    (is (identity (test-binary-diff-patch 10001 50)))))
