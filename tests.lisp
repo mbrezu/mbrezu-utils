@@ -177,3 +177,22 @@ works."
     (is (identity (test-binary-diff-patch 1001 20))))
   (dotimes (i 100)
     (is (identity (test-binary-diff-patch 10001 50)))))
+
+(defun test-binary-diff-encoding (patches)
+  (let ((array (flexi-streams:with-output-to-sequence (str)
+                 (binary-patch-encode patches str))))
+    (equalp patches (flexi-streams:with-input-from-sequence (str array)
+                      (binary-patch-decode str)))))
+
+(test binary-diff-encoding
+  (is (identity (test-binary-diff-encoding '())))
+  (is (identity (test-binary-diff-encoding '((:copy 0 100)))))
+  (is (identity (test-binary-diff-encoding '((:add #(0 100 200 50))))))
+  (is (identity (test-binary-diff-encoding
+                 `((:copy 70000 80000) (:add ,(make-array 100 :element-type '(mod 256)))))))
+  (is (identity (test-binary-diff-encoding
+                 `((:copy ,(expt 2 33) 80000) (:add ,(make-array 500 :element-type '(mod 256)))))))
+  (is (identity (test-binary-diff-encoding
+                 `((:copy ,(expt 2 33) 80000)
+                   (:add ,(make-array 500 :element-type '(mod 256)))
+                   (:add ,(make-array 70000 :element-type '(mod 256))))))))
