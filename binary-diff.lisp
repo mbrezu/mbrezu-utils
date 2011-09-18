@@ -245,7 +245,7 @@
                                      (read-byte ,g-stream))))))
        result)))
 
-(defun binary-patch-encode (patches stream)
+(defun binary-patch-encode-to-stream (patches stream)
   (dolist (patch patches)
     (ecase (first patch)
       ((:copy)
@@ -265,7 +265,7 @@
          (write-sequence (second patch) stream)))))
   (write-byte 0 stream))
 
-(defun binary-patch-decode (stream &optional acc)
+(defun binary-patch-decode-from-stream (stream &optional acc)
   (let ((byte (read-byte stream)))
     (ecase (ldb (byte 2 6) byte)
       ((#b00) (reverse acc))
@@ -276,7 +276,7 @@
                          (load-big-endian stream sss-bits)
                          (load-big-endian stream lll-bits))
                    acc)
-             (binary-patch-decode stream $))))
+             (binary-patch-decode-from-stream stream $))))
       ((#b10)
        (let (array)
          (if (= 0 (ldb (byte 1 5) byte))
@@ -288,4 +288,12 @@
                (setf array (make-array length :element-type '(mod 256)))
                (read-sequence array stream)))
          (-> (cons (list :add array) acc)
-             (binary-patch-decode stream $)))))))
+             (binary-patch-decode-from-stream stream $)))))))
+
+(defun binary-patch-encode (patches)
+  (flexi-streams:with-output-to-sequence (str)
+    (binary-patch-encode-to-stream patches str)))
+
+(defun binary-patch-decode (bytes)
+  (flexi-streams:with-input-from-sequence (str bytes)
+    (binary-patch-decode-from-stream str)))

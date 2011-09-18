@@ -179,10 +179,9 @@ works."
     (is (identity (test-binary-diff-patch 10001 50)))))
 
 (defun test-binary-diff-encoding (patches)
-  (let ((array (flexi-streams:with-output-to-sequence (str)
-                 (binary-patch-encode patches str))))
-    (equalp patches (flexi-streams:with-input-from-sequence (str array)
-                      (binary-patch-decode str)))))
+  (equalp patches (-> patches
+                      binary-patch-encode
+                      binary-patch-decode)))
 
 (test binary-diff-encoding
   (is (identity (test-binary-diff-encoding '())))
