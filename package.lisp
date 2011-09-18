@@ -12,7 +12,10 @@
            print-all
            list-diff list-patch
            aif awhen bif bwhen
-           binary-diff binary-patch))
+           store-big-endian load-big-endian
+           binary-diff binary-patch
+           binary-patch-encode
+           binary-patch-decode))
 
 (defpackage #:mbrezu-utils-postgres
   (:use #:cl)
