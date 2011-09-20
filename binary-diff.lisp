@@ -84,7 +84,7 @@
                 (push verified-match matches)
                 (setf last-match verified-match))))))
       (when (and (= 0 (mod i block-size))
-                 (< i source-size))
+                 (<= i source-size))
         (setf (gethash hash sub-strings) (- i block-size)))
       (setf hash (hash bytes i block-size hash hash-exp))
       (setf (aref result i) hash))
