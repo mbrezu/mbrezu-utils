@@ -10,7 +10,6 @@
            ->
            deep-equal diff grep-apropos
            print-all
-           list-diff list-patch
            aif awhen bif bwhen
            store-big-endian load-big-endian
            binary-diff binary-patch

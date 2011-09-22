@@ -7,7 +7,6 @@
                :flexi-streams)
   :components ((:file "package")
                (:file "mbrezu-utils")
-               (:file "list-diff")
                (:file "mbrezu-utils-postgres")
                (:file "mbrezu-utils-threads")
                (:file "binary-diff")
