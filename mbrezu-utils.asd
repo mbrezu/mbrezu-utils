@@ -10,5 +10,6 @@
                (:file "mbrezu-utils-postgres")
                (:file "mbrezu-utils-threads")
                (:file "binary-diff")
+               (:file "pretty-print")
                (:file "tests")))
 

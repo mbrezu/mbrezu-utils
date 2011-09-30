@@ -42,6 +42,8 @@
 
 (defgeneric deep-equal (instance1 instance2))
 
+(defgeneric shallow-copy (instance))
+
 (defun from-list (list &optional (is-first t))
   (cond ((atom list) list)
         ((consp list)
@@ -130,6 +132,11 @@
                ,@(mapcan (lambda (slot) (list (as-keyword slot)
                                               `(to-list (slot-value instance ',slot))))
                          slots)))
+       (defmethod shallow-copy ((instance ,name))
+         (make-instance ',name
+                        ,@(mapcan (lambda (slot) (list (as-keyword slot)
+                                                       `(slot-value instance ',slot)))
+                                  slots)))
        (defmethod deep-equal ((instance1 ,name) (instance2 ,name))
          (every #'deep-equal
                 (list ,@(mapcar (lambda (slot)

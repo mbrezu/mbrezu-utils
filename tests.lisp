@@ -142,3 +142,30 @@ works."
                  `((:copy ,(expt 2 33) 80000)
                    (:add ,(make-array 500 :element-type '(mod 256)))
                    (:add ,(make-array 70000 :element-type '(mod 256))))))))
+
+(test pretty-printing
+  (is (string-equal "  ahabahatoo
+         boo
+         hoo
+         gooo
+         
+" (pretty-print '(:never-break "  "
+                                    (:maybe-break "aha" "baha")
+                                    (:maybe-break "too" "boo" "hoo" "gooo"))
+                                  10)))
+  (is (string-equal "  aha
+  baha
+  too
+  boo
+  hoo
+  gooo
+  
+" (pretty-print '(:never-break "  "
+                                    (:maybe-break "aha" "baha")
+                                    (:maybe-break "too" "boo" "hoo" "gooo"))
+                                  5)))
+  (is (string-equal "  ahabahatooboohoogooo
+" (pretty-print '(:never-break "  "
+                                    (:maybe-break "aha" "baha")
+                                    (:maybe-break "too" "boo" "hoo" "gooo"))
+                                  50))))
