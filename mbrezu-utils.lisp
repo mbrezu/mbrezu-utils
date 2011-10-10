@@ -108,52 +108,72 @@
     `(:old ,(to-list instance1)
            :new ,(to-list instance2))))
 
-(defmacro defclassf (name parents slots)
+(defun get-init-forms (slot-options)
+  (let* ((result (make-hash-table))
+         (filtered-options (-> slot-options
+                               (remove-if-not (lambda (slot-option)
+                                                (eq :initform (second slot-option)))
+                                              $)
+                               (mapcar (lambda (slot-option)
+                                         (list (first slot-option) (third slot-option)))
+                                       $))))
+    (dolist (option filtered-options)
+      (setf (gethash (first option) result) (second option)))
+    result))
+
+(defmacro defclassf (name parents slots &rest slot-options)
   (when (not (symbolp name))
     (error "The name of the class must be a symbol."))
-  (labels ((as-keyword (slot)
-             (intern (symbol-name slot) "KEYWORD")))
-    `(progn
-       (defclass ,name ,parents
-         ,(mapcar (lambda (slot-name)
-                    (list slot-name
-                          :accessor slot-name ;;(mksymb name '- slot-name)
-                          :initarg (as-keyword slot-name)
-                          :initform nil))
-                  slots))
-       (defun ,(mksymb 'make '- name) (&key ,@slots)
-         (make-instance ',name ,@(mapcan (lambda (slot) (list (as-keyword slot) slot))
-                                         slots)))
-       (defun ,(mksymb 'mk '- name) ,slots
-         (make-instance ',name ,@(mapcan (lambda (slot) (list (as-keyword slot) slot))
-                                         slots)))
-       (defmethod to-list ((instance ,name))
-         (list :class ',name
-               ,@(mapcan (lambda (slot) (list (as-keyword slot)
-                                              `(to-list (slot-value instance ',slot))))
-                         slots)))
-       (defmethod shallow-copy ((instance ,name))
-         (make-instance ',name
-                        ,@(mapcan (lambda (slot) (list (as-keyword slot)
-                                                       `(slot-value instance ',slot)))
-                                  slots)))
-       (defmethod deep-equal ((instance1 ,name) (instance2 ,name))
-         (every #'deep-equal
-                (list ,@(mapcar (lambda (slot)
-                                  `(slot-value instance1 ',slot))
-                                slots))
-                (list ,@(mapcar (lambda (slot)
-                                  `(slot-value instance2 ',slot))
-                                slots))))
-       (defmethod diff ((instance1 ,name) (instance2 ,name))
-         (unless (deep-equal instance1 instance2)
-           (remove-if-not (lambda (elm) (third elm))
-                          (list ,@(mapcar (lambda (slot)
-                                            `(list :change ',slot
-                                                   (diff
-                                                    (slot-value instance1 ',slot)
-                                                    (slot-value instance2 ',slot))))
-                                          slots))))))))
+  (let* ((dont-serialize-slots (-> slot-options
+                                   (remove-if-not (lambda (slot-option)
+                                                    (eq :dont-serialize (second slot-option)))
+                                                  $)
+                                   (mapcar #'first $)))
+         (serialize-slots (set-difference slots dont-serialize-slots))
+         (initforms (get-init-forms slot-options)))
+    (labels ((as-keyword (slot)
+               (intern (symbol-name slot) "KEYWORD")))
+      `(progn
+         (defclass ,name ,parents
+           ,(mapcar (lambda (slot-name)
+                      (list slot-name
+                            :accessor slot-name ;;(mksymb name '- slot-name)
+                            :initarg (as-keyword slot-name)
+                            :initform (gethash slot-name initforms)))
+                    slots))
+         (defun ,(mksymb 'make '- name) (&key ,@slots)
+           (make-instance ',name ,@(mapcan (lambda (slot) (list (as-keyword slot) slot))
+                                           slots)))
+         (defun ,(mksymb 'mk '- name) ,slots
+           (make-instance ',name ,@(mapcan (lambda (slot) (list (as-keyword slot) slot))
+                                           slots)))
+         (defmethod to-list ((instance ,name))
+           (list :class ',name
+                 ,@(mapcan (lambda (slot) (list (as-keyword slot)
+                                                `(to-list (slot-value instance ',slot))))
+                           serialize-slots)))
+         (defmethod shallow-copy ((instance ,name))
+           (make-instance ',name
+                          ,@(mapcan (lambda (slot) (list (as-keyword slot)
+                                                         `(slot-value instance ',slot)))
+                                    slots)))
+         (defmethod deep-equal ((instance1 ,name) (instance2 ,name))
+           (every #'deep-equal
+                  (list ,@(mapcar (lambda (slot)
+                                    `(slot-value instance1 ',slot))
+                                  serialize-slots))
+                  (list ,@(mapcar (lambda (slot)
+                                    `(slot-value instance2 ',slot))
+                                  serialize-slots))))
+         (defmethod diff ((instance1 ,name) (instance2 ,name))
+           (unless (deep-equal instance1 instance2)
+             (remove-if-not (lambda (elm) (third elm))
+                            (list ,@(mapcar (lambda (slot)
+                                              `(list :change ',slot
+                                                     (diff
+                                                      (slot-value instance1 ',slot)
+                                                      (slot-value instance2 ',slot))))
+                                            serialize-slots)))))))))
 
 (defun grep-apropos (apropos-arg &rest grep-args)
   (let* ((apropos-result (with-output-to-string (str)
