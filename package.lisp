@@ -6,14 +6,15 @@
   (:export mkstr mksymb
            to-list from-list
            defclassf
-           ->
+           -> $
            deep-equal diff grep-apropos shallow-copy
            print-all ematch
            aif awhen bif bwhen
            store-big-endian load-big-endian
            binary-diff binary-patch
            binary-patch-encode
-           binary-patch-decode))
+           binary-patch-decode
+           it))
 
 (defpackage #:mbrezu-utils-postgres
   (:use #:cl #:mabu)

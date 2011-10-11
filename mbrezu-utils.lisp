@@ -26,7 +26,7 @@
       (if (consp (car forms))
           (let* ((first-form (first forms))
                  (other-forms (rest forms))
-                 (pos (position (mksymb "$") first-form)))
+                 (pos (position '$ first-form)))
             (if pos
                 `(-> ,(append (subseq first-form 0 pos)
                               (list obj)
