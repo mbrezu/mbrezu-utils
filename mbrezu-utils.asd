@@ -11,5 +11,6 @@
                (:file "mbrezu-utils-threads")
                (:file "binary-diff")
                (:file "pretty-print")
+               (:file "html-find-path")
                (:file "tests")))
 

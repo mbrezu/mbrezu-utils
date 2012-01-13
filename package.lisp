@@ -36,3 +36,7 @@
   (:use #:cl #:mabu #:fiveam #:mupp)
   (:export :mbrezu-utils-tests))
 
+(defpackage #:mbrezu-utils-html-find-path
+  (:use #:cl #:mabu)
+  (:export find-path)
+  (:nicknames #:muh-fp))
