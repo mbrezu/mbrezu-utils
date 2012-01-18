@@ -14,7 +14,8 @@
            binary-diff binary-patch
            binary-patch-encode
            binary-patch-decode
-           it))
+           it
+           #:group))
 
 (defpackage #:mbrezu-utils-postgres
   (:use #:cl #:mabu)
