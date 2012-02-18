@@ -1,6 +1,8 @@
 
 (in-package #:mbrezu-utils-html-find-path)
 
+(declaim (optimize debug))
+
 (defstruct path-segment
   (direct-descendant)
   (element)
@@ -12,7 +14,7 @@
                                          :element input
                                          :attributes nil
                                          :count count))
-        ((eq (first input) '!)
+        ((eq (first input) :direct)
          (parse-path-segment (rest input) t count))
         ((numberp (first input))
          (parse-path-segment (rest input) direct-descendant (first input)))
@@ -70,8 +72,7 @@
 (defun match-path-and-trail (parsed-path trail index)
   (cond ((null parsed-path) t)
         ((< (- (length trail) index)
-            (length parsed-path))
-         nil)
+            (length parsed-path)) nil)
         (t (let* ((trail-item (aref trail index))
                   (trail-element (trail-segment-element trail-item))
                   (trail-count (trail-segment-count trail-item))
@@ -91,7 +92,7 @@
                     (match-path-and-trail parsed-path trail (1+ index)))
                    (t nil))))))
 
-(defun find-path (path parsed-html)
+(defun find-path (path parsed-html &rest extra-paths)
   "
 XPath-like function to list nodes in a parsed HTML file by
 path. The parsed HTML must be in the form provided by
@@ -105,27 +106,34 @@ Examples:
 \(find-path \'(:html :div) parsed-html) will find the <div>
 elements in <html> (not necessarily direct descendants).
 
-\(find-path \'(:html (:div (:author \"me\")) parsed-html) will find
+\(find-path \'(:h3) parsed-html \'(:h4) \'(:h5)) will find the <h3>,
+<h4> and <h5> elements in the order in which they appear in the
+document (the extra-paths are considered alternatives to the inital
+path).
+
+\(find-path \'(:html (:div :author \"me\")) parsed-html) will find
 the <div> elements in <body> that have an attribute :author
 with value \"me\".
 
-\(find-path \'((:div (:author \"me\")) (! :strong)) parsed-html) will
+\(find-path \'((:div :author \"me\") (:direct :strong)) parsed-html) will
 find <strong> elements that are direct descendants (children, not
 grand-children or grand-grand-children etc.) of a <div> element
 that has an :author attribute with value \"me\".
 
-\(find-path \'((:div :id \"content\") (! 2 :div )) parsed-html) will
+\(find-path \'((:div :id \"content\") (:direct 2 :div)) parsed-html) will
 find the <div> elements that are direct descendants of a <div>
 element with an :id attribute with value \"content\"; only the <div>
 elements that are second in their list of sibilings of the same
 type are returned.
 "
   (let ((acc nil)
-        (parsed-path (parse-path path)))
+        (parsed-paths (mapcar #'parse-path (cons path extra-paths))))
     (walk-parsed-html parsed-html
                       #'(lambda (trail)
                           (if (and (> (length trail) 0)
-                                   (match-path-and-trail parsed-path trail 0))
+                                   (some (lambda (parsed-path)
+                                           (match-path-and-trail parsed-path trail 0))
+                                         parsed-paths))
                               (progn
                                 (push (trail-segment-element (aref trail (1- (length trail))))
                                       acc)
