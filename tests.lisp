@@ -169,3 +169,50 @@ works."
                                     (:maybe-break "aha" "baha")
                                     (:maybe-break "too" "boo" "hoo" "gooo"))
                                   50))))
+
+(test html-generation
+  (is (string-equal "<html><head><title>Test</title></head><body/></html>"
+                    (with-output-to-string (str)
+                      (muhg:gen-html '(:html
+                                       (:head (:title "Test"))
+                                       (:body))
+                                     str))))
+  (is (string-equal "<html><head><title>Test</title></head><body>100%<p id=\"p1\">hello, world</p></body></html>"
+                    (with-output-to-string (str)
+                      (muhg:gen-html '(:html
+                                       (:head (:title "Test"))
+                                       (:body "100%"
+                                        (:p :id "p1" "hello, world")))
+                                     str))))
+  (is (string-equal "<html><head><title>Test</title></head><body>100%<p id=\"p1\" class=\"para\">hello, world</p></body></html>"
+                    (with-output-to-string (str)
+                      (muhg:gen-html '(:html
+                                       (:head (:title "Test"))
+                                       (:body "100%"
+                                        (:p :id "p1" :class "para"
+                                         "hello, world")))
+                                     str)))))
+
+(test css-generation
+  (is (string-equal ".footer:visited {
+    list-style: none;
+    display: block;
+}
+
+h1, h2 {
+    background-color: yellow;
+}
+" (with-output-to-string (str)
+    (mucg:gen-css '(".footer:visited" ((list-style none)
+                                       (display block))
+                    (h1 h2) ((background-color yellow)))
+                  str))))
+
+  (is (string-equal "a {
+    list-style: none;
+    display: block;
+}
+" (with-output-to-string (str)
+    (mucg:gen-css '(a ((list-style none)
+                       (display block)))
+                  str)))))

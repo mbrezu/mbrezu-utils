@@ -47,3 +47,9 @@
   (:nicknames #:muhg)
   (:export
    :gen-html))
+
+(defpackage #:mbrezu-utils-css-get
+  (:use #:cl #:mabu)
+  (:nicknames #:mucg)
+  (:export
+   :gen-css))
