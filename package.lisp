@@ -41,3 +41,9 @@
   (:use #:cl #:mabu)
   (:export find-path)
   (:nicknames #:muh-fp))
+
+(defpackage #:mbrezu-utils-html-gen
+  (:use #:cl #:mabu)
+  (:nicknames #:muhg)
+  (:export
+   :gen-html))
