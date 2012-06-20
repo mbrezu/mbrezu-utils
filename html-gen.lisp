@@ -11,12 +11,11 @@
   (values))
 
 (defun gen-all-html (html-trees stream)
-  (mapc (lambda (html-tree)
-          (gen-html html-tree stream))
-        html-trees))
+  (dolist (html-tree html-trees)
+    (gen-html html-tree stream)))
 
 (defun tag-name (tag)
-  (-> tag symbol-name string-downcase))
+  (-> tag symbol-name string-downcase escape-html))
 
 (defun make-tag (html-tree stream)
   (let ((tag (first html-tree))
@@ -27,7 +26,7 @@
        do (push (list (first children) (second children))
                 attributes)
          (setf children (cddr children)))
-    (cond (children
+    (cond ((or children (string-equal "script" tag))
            (write-string "<" stream)
            (write-string (tag-name tag) stream)
            (write-attributes (nreverse attributes) stream)
