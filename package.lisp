@@ -15,13 +15,16 @@
            binary-patch-encode
            binary-patch-decode
            it
-           #:group))
+           #:group
+           #:dohash))
 
 (defpackage #:mbrezu-utils-postgres
   (:use #:cl #:mabu)
   (:nicknames #:mup)
   (:export with-connection with-transaction exec
-           retry-on-serialization-error))
+           retry-on-serialization-error
+           #:*default-row-reader*
+           #:exec-scalar))
 
 (defpackage #:mbrezu-utils-threads
   (:use #:cl #:mabu #:bordeaux-threads)

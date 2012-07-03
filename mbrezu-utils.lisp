@@ -219,3 +219,9 @@
 (defmacro bwhen ((var test) &body body)
   `(let ((,var ,test))
      (when ,var ,@body)))
+
+(defmacro dohash (((key value) hash) &body body)
+  `(maphash (lambda (,key ,value)
+              (declare (ignorable ,key ,value))
+              ,@body)
+            ,hash))
