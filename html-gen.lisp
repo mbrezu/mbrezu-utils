@@ -17,6 +17,10 @@
 (defun tag-name (tag)
   (-> tag symbol-name string-downcase escape-html))
 
+(defun not-self-closing (tag)
+  (or (string-equal "script" tag)
+      (string-equal "div" tag)))
+
 (defun make-tag (html-tree stream)
   (let ((tag (first html-tree))
         attributes
@@ -26,7 +30,7 @@
        do (push (list (first children) (second children))
                 attributes)
          (setf children (cddr children)))
-    (cond ((or children (string-equal "script" tag))
+    (cond ((or children (not-self-closing tag))
            (write-string "<" stream)
            (write-string (tag-name tag) stream)
            (write-attributes (nreverse attributes) stream)
