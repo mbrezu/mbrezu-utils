@@ -17,7 +17,7 @@
        (cl-postgres:exec-query ,g-connection "START TRANSACTION ISOLATION LEVEL SERIALIZABLE")
        (unwind-protect
             (prog1
-              ,@body
+                ,@body
               (setf ,g-ok t))
          (if ,g-ok
              (cl-postgres:exec-query ,g-connection "COMMIT")
@@ -48,8 +48,13 @@
       nillify))
 
 (defmacro retry-on-serialization-error (&body body)
-  `(tagbody
-    retry
-      (handler-case
-          (progn ,@body)
-        (cl-postgres-error:serialization-failure () (go retry)))))
+  (let ((g-retry (gensym "retry"))
+        (g-result (gensym "result")))
+    `(let (,g-result)
+       (tagbody
+          ,g-retry
+          (handler-case
+              (setf ,g-result (progn ,@body))
+            (cl-postgres-error:serialization-failure ()
+              (go ,g-retry))))
+       ,g-result)))
