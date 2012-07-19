@@ -17,7 +17,8 @@
        (cl-postgres:exec-query ,g-connection "START TRANSACTION ISOLATION LEVEL SERIALIZABLE")
        (unwind-protect
             (prog1
-                ,@body
+                (progn
+                  ,@body)
               (setf ,g-ok t))
          (if ,g-ok
              (cl-postgres:exec-query ,g-connection "COMMIT")
