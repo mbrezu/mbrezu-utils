@@ -19,7 +19,8 @@
 
 (defun not-self-closing (tag)
   (or (string-equal "script" tag)
-      (string-equal "div" tag)))
+      (string-equal "div" tag)
+      (string-equal "span" tag)))
 
 (defun make-tag (html-tree stream)
   (let ((tag (first html-tree))
@@ -55,16 +56,18 @@
 
 (defun escape-html (string)
   (with-output-to-string (str)
-    (loop
-       for ch being the elements of string
-       do (cond ((char= #\< ch)
-                 (write-string "&lt;" str))
-                ((char= #\> ch)
-                 (write-string "&gt;" str))
-                ((char= #\& ch)
-                 (write-string "&amp;" str))
-                ((char= #\" ch)
-                 (write-string "&quot;" str))
-                ((char= #\' ch)
-                 (write-string "&#039;" str))
-                (t (write-char ch str))))))
+    (let ((string-length (length string)))
+      (loop
+         for i from 0 to (1- string-length)
+         do (let ((ch (elt string i)))
+              (cond ((char= #\< ch)
+                     (write-string "&lt;" str))
+                    ((char= #\> ch)
+                     (write-string "&gt;" str))
+                    ((char= #\& ch)
+                     (write-string "&amp;" str))
+                    ((char= #\" ch)
+                     (write-string "&quot;" str))
+                    ((char= #\' ch)
+                     (write-string "&#039;" str))
+                    (t (write-char ch str))))))))

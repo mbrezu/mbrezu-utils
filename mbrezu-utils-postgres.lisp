@@ -43,10 +43,11 @@
       value))
 
 (defun exec-scalar (connection query &rest parameters)
-  (-> (apply #'exec connection query parameters)
-      first
-      first
-      nillify))
+  (let ((*default-row-reader* #'cl-postgres:list-row-reader))
+    (-> (apply #'exec connection query parameters)
+        first
+        first
+        nillify)))
 
 (defmacro retry-on-serialization-error (&body body)
   (let ((g-retry (gensym "retry"))
