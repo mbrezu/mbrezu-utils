@@ -38,6 +38,16 @@
                ,@(cdr forms)))
       obj))
 
+(defmacro ~> (object &rest forms)
+  "A better ->: it allows for recursive calls and replaces even inside
+subforms of FORMS. Uses SYMBOL-MACROLET for code walking."
+  (cond ((null forms) object)
+        ((atom (first forms)) `(~> ,object ,@(cons (list (first forms) '$)
+                                                   (rest forms))))
+        (t `(~> (symbol-macrolet (($ ,object))
+                  ,(first forms))
+                ,@(rest forms)))))
+
 (defgeneric to-list (instance))
 
 (defgeneric deep-equal (instance1 instance2))

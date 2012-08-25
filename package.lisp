@@ -16,7 +16,8 @@
            binary-patch-decode
            it
            #:group
-           #:dohash))
+           #:dohash
+           #:~>))
 
 (defpackage #:mbrezu-utils-postgres
   (:use #:cl #:mabu)
