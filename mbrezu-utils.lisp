@@ -11,7 +11,7 @@
   (defun mksymb (&rest args)
     (-> args
         (apply #'mkstr $)
-        string-upcase
+        ;; string-upcase
         intern))
 
   (defun group (list n)
