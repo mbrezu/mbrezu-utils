@@ -12,7 +12,5 @@
                (:file "binary-diff")
                (:file "pretty-print")
                (:file "html-find-path")
-               (:file "html-gen")
-               (:file "css-gen")
                (:file "tests")))
 
